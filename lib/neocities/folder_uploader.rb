@@ -6,7 +6,7 @@ require 'pastel'
 module Neocities
   class FileIsNotExists < StandardError; end
 
-  class FileUploader
+  class FolderUploader
     def initialize(client, filepath, remote_path = nil)
       @client = client
       @filepath = filepath
@@ -19,23 +19,18 @@ module Neocities
 
       raise FileIsNotExists, "#{path} does not exist locally." unless path.exist?
 
-      if path.directory?
-        puts @pastel.bold("#{path} is a directory, skipping")
+      if path.file?
+        puts @pastel.bold("#{path} is not a directory, skipping")
         return
       end
 
-      puts @pastel.bold("Uploading #{path} to #{@remote_path} ...")
-
-      response = @client.upload(path, @remote_path)
-      puts response if response[:result] == 'error'
-
-      if response[:result] == 'error' && response[:error_type] == 'file_exists'
-        puts @pastel.yellow.bold('EXISTS')
-      elsif response[:result] == 'success'
-        puts @pastel.green.bold('SUCCESS')
+      Dir.chdir(path) do
+        files = Dir.glob('**', File::FNM_DOTMATCH)[1..]
+        files.each do |file|
+          remote_path = File.join(@remote_path, file)
+          FileUploader.new(@client, file, remote_path).upload
+        end
       end
-
-      response
     end
   end
 end

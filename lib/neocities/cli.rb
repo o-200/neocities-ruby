@@ -15,7 +15,7 @@ MAX_THREADS = 5
 
 module Neocities
   class CLI
-    SUBCOMMANDS = %w[upload delete list info push logout pizza pull].freeze
+    SUBCOMMANDS = %w[upload delete list info push logout pizza pull purge].freeze
     HELP_SUBCOMMANDS = ['-h', '--help', 'help'].freeze
     PENELOPE_MOUTHS = %w[^ o ~ - v U].freeze
     PENELOPE_EYES = %w[o ~ O].freeze
@@ -62,6 +62,7 @@ module Neocities
         display_help_and_exit
       elsif @subargs.join('').match(HELP_SUBCOMMANDS.join('|')) && @subcmd != 'info'
         send "display_#{@subcmd}_help_and_exit"
+
       end
 
       unless @api_key
@@ -303,7 +304,7 @@ module Neocities
               end
               next if path.nil? || path.directory?
 
-              Neocities::FileUploader.new(@client, path).upload
+              Neocities::FileUploader.new(@client, path, path).upload
             end
           end
         end
@@ -326,7 +327,11 @@ module Neocities
         end
       end
 
-      FileUploader.new(@client, @subargs[0], @subargs[1]).upload
+      if File.file?(@subargs[0])
+        FileUploader.new(@client, @subargs[0], @subargs[1]).upload
+      elsif File.directory?(@subargs[0])
+        FolderUploader.new(@client, @subargs[0], @subargs[1]).upload
+      end
     end
 
     def pull
@@ -338,6 +343,23 @@ module Neocities
 
       SiteExporter.new(@client, @sitename, data, @app_config_path)
                   .export(quiet, last_pull_time, last_pull_loc)
+    end
+
+    # only for development purposes
+    def purge
+      pruned_dirs = []
+      resp = @client.list
+      resp[:files].each do |file|
+        print @pastel.bold("Deleting #{file[:path]} ... ")
+        resp = @client.delete_wrapper_with_dry_run file[:path], @dry_run
+
+        if resp[:result] == 'success'
+          print "#{@pastel.green.bold('SUCCESS')}\n"
+        else
+          print "\n"
+          display_response resp
+        end
+      end
     end
 
     def pizza
