@@ -12,7 +12,8 @@ Hello, there is a fork of [neocities-ruby gem](https://github.com/neocities/neoc
 4) Added `--ignore-dotfiles` to ignore all files-folders starts with '.';
 5) Added `--optimized` for `neocities push` flag to upload only modified files;
 6) Fixed bug with neocities info on modern rubies;
-7) Re-designed `upload` method;
+7) Re-designed `upload` method logic;
+8) upload method also could upload folders with their content;
 
 ## TODO'S:
 1) Check all entire cli and client logic, fix bugs.
